@@ -122,22 +122,24 @@ class PPOLag:
         nextState = torch.tensor(nextState, dtype=torch.float) # n * 244
 
         rewardAdvantage = reward +  self.gamma * self.rewardCritic(nextState) - self.rewardCritic(state)
+        costAdvantage = cost +  self.gamma * self.rewardCritic(nextState) - self.rewardCritic(state)
 
         oldLogProb = torch.tensor([])
         for i in range(self.batchSize):
             matchingState = torch.tensor(matchingState[i], dtype=torch.float)
-            lP = torch.log(torch.softmax(self.actor(matchingState), dim=0)[action[i]])
+            lP = torch.log(torch.softmax(self.actor(matchingState), dim=0)[action[i].item()])
             oldLogProb = torch.cat((oldLogProb,lP),0)
 
         for _ in range(self.epochs):
             newLogProb = torch.tensor([])
             for i in range(self.batchSize):
                 matchingState = torch.tensor(matchingState[i], dtype=torch.float)
-                lP = torch.log(torch.softmax(self.actor(matchingState), dim=0)[action[i]])
+                lP = torch.log(torch.softmax(self.actor(matchingState), dim=0)[action[i].item()])
                 newLogProb = torch.cat((newLogProb, lP), 0).to(device)
                 ratio = torch.exp(newLogProb - oldLogProb)
-                surr1 = ratio * rewardAdvantage
-                surr2 = torch.clamp(ratio, 1 - self.eps,
-                                    1 + self.eps) * rewardAdvantage  # 截断
+
+                rewardSurr1 = ratio * rewardAdvantage
+                rewardSurr2 = torch.clamp(ratio, 1 - self.eps,
+                                    1 + self.eps) * rewardAdvantage
 
     def update_lagrange(self, matchingState,state,action,reward,cost,nextState,round):
