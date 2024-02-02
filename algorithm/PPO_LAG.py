@@ -5,17 +5,18 @@ import torch
 import torch.nn.functional as F
 
 device = torch.device("cpu")
+torch.cuda.set_device(device)
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, stateDim,actionDim):  # 244 # 8
         super(PolicyNet, self).__init__()
         self.stateDim = stateDim # 244
         self.actionDim = actionDim # 8
-        self.S = torch.nn.Linear(self.stateDim, 64).to(device)
-        self.A = torch.nn.Linear(self.actionDim,4).to(device)
-        self.L1 = torch.nn.Linear(64+4,32).to(device)
-        self.L2 = torch.nn.Linear(32,8).to(device)
-        self.f = torch.nn.Linear(8, 1).to(device)
+        self.S = torch.nn.Linear(self.stateDim, 64)
+        self.A = torch.nn.Linear(self.actionDim,4)
+        self.L1 = torch.nn.Linear(64+4,32)
+        self.L2 = torch.nn.Linear(32,8)
+        self.f = torch.nn.Linear(8, 1)
 
     def forward(self, X):
         s = X[:, :self.stateDim]
@@ -33,10 +34,10 @@ class RewardValueNet(torch.nn.Module):
     def __init__(self, stateDim):
         super(RewardValueNet, self).__init__()
         self.stateDim = stateDim  # 244
-        self.S = torch.nn.Linear(stateDim, 64).to(device)
-        self.L1 = torch.nn.Linear(64, 32).to(device)
-        self.L2 = torch.nn.Linear(32, 8).to(device)
-        self.f = torch.nn.Linear(8, 1).to(device)
+        self.S = torch.nn.Linear(stateDim, 64)
+        self.L1 = torch.nn.Linear(64, 32)
+        self.L2 = torch.nn.Linear(32, 8)
+        self.f = torch.nn.Linear(8, 1)
 
     def forward(self, X):
         s = X[:, :self.stateDim]
@@ -51,10 +52,10 @@ class CostValueNet(torch.nn.Module):
     def __init__(self, stateDim):
         super(CostValueNet, self).__init__()
         self.stateDim = stateDim  # 244
-        self.S = torch.nn.Linear(stateDim, 64).to(device)
-        self.L1 = torch.nn.Linear(64, 32).to(device)
-        self.L2 = torch.nn.Linear(32, 8).to(device)
-        self.f = torch.nn.Linear(8, 1).to(device)
+        self.S = torch.nn.Linear(stateDim, 64)
+        self.L1 = torch.nn.Linear(64, 32)
+        self.L2 = torch.nn.Linear(32, 8)
+        self.f = torch.nn.Linear(8, 1)
 
     def forward(self, X):
         s = X[:, :self.stateDim]
@@ -84,7 +85,7 @@ class ReplayBuffer:
 
 
 class PPOLag:
-    def __init__(self, stateDim, actionDim, actorLr, criticLr, gamma, batchSize,device):
+    def __init__(self, stateDim, actionDim, actorLr, criticLr,lagrange,epochs,eps, gamma, batchSize,device):
         self.actor = PolicyNet(stateDim,actionDim).to(device)
         self.rewardCritic = RewardValueNet(stateDim).to(device)
         self.costCritic = CostValueNet(stateDim).to(device)
@@ -92,6 +93,9 @@ class PPOLag:
         self.rewardCriticLr = criticLr
         self.costCriticLr = criticLr
         self.gamma = gamma
+        self.lagrange = lagrange
+        self.epochs = epochs  # round
+        self.eps = eps   # clip range
         self.batchSize = batchSize
         self.actorOptimizer = torch.optim.Adam(self.actor.parameters(), lr=self.actorLr)
         self.rewardCriticOptimizer = torch.optim.Adam(self.rewardCritic.parameters(), lr=self.rewardCriticLr)
@@ -110,4 +114,30 @@ class PPOLag:
             action = torch.max(actionProb,0)[1]
         return action.item()  # 对softmax函数求导时的用法
 
-    def update(self, matchingState,state,action,reward,cost,nextState,round):
+    def update_theta(self, matchingState,state,action,reward,cost,nextState,round):
+        state = torch.tensor(state, dtype=torch.float) # n * 244
+        action = torch.tensor(action).view(-1,1)# n * 1
+        reward = torch.tensor(reward, dtype=torch.float).view(-1,1) # n * 1
+        cost = torch.tensor(cost, dtype=torch.float).view(-1,1) # n * 1
+        nextState = torch.tensor(nextState, dtype=torch.float) # n * 244
+
+        rewardAdvantage = reward +  self.gamma * self.rewardCritic(nextState) - self.rewardCritic(state)
+
+        oldLogProb = torch.tensor([])
+        for i in range(self.batchSize):
+            matchingState = torch.tensor(matchingState[i], dtype=torch.float)
+            lP = torch.log(torch.softmax(self.actor(matchingState), dim=0)[action[i]])
+            oldLogProb = torch.cat((oldLogProb,lP),0)
+
+        for _ in range(self.epochs):
+            newLogProb = torch.tensor([])
+            for i in range(self.batchSize):
+                matchingState = torch.tensor(matchingState[i], dtype=torch.float)
+                lP = torch.log(torch.softmax(self.actor(matchingState), dim=0)[action[i]])
+                newLogProb = torch.cat((newLogProb, lP), 0).to(device)
+                ratio = torch.exp(newLogProb - oldLogProb)
+                surr1 = ratio * rewardAdvantage
+                surr2 = torch.clamp(ratio, 1 - self.eps,
+                                    1 + self.eps) * rewardAdvantage  # 截断
+
+    def update_lagrange(self, matchingState,state,action,reward,cost,nextState,round):
