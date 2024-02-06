@@ -9,7 +9,6 @@ class Region(object):
         self.secondNeighbors = []
         self.thirdNeighbors = []
 
-        self.cityDay = 0
         self.cityTime = 0
 
         self.meanwt = 0
@@ -18,8 +17,20 @@ class Region(object):
         self.driverList = []
         self.orderList = []
 
-        self.accWaitingTime = 0
+        self.wtList = []
+        self.accwt = 0
         self.accOrder = 0
+
+
+
+
+    def set_day_info(self, day):
+        self.cityDay = day
+
+
+
+    def set_region_meanwt(self,wt):
+        self.meanwt = wt
 
     def set_neighbors(self):
         x = self.regionID % 10
@@ -40,13 +51,15 @@ class Region(object):
 
         self.neighborLevel = [self.firstNeighbors, self.secondNeighbors, self.thirdNeighbors, list(range(100))]
 
-    def set_day_info(self, day):
-        self.cityDay = day
+
 
     def reset_region_info(self):
         self.cityTime = 0
         self.driverList = []
         self.orderList = []
+        self.wtList = []
+        self.dayAccwt = 0
+        self.dayaccOrder = 0
 
     def add_driver(self,driver):
         self.driverList.append(driver)
@@ -55,15 +68,18 @@ class Region(object):
         self.orderList.append(order)
 
     def accept_order(self,wt):
-        self.accWaitingTime += wt
+        self.wtList.append(wt)
+        self.accwt += wt
         self.accOrder += 1
+        self.dayAccwt += wt
+        self.dayaccOrder += 1
 
     def step_update_region_info(self):
         self.cityTime += 1
         self.driverList = []
         self.orderList = []
-        if self.accOrder > 0:
-            self.meanwt = self.accWaitingTime / self.accOrder
+        # if self.accOrder > 0:
+        #     self.meanwt = self.accwt / self.accOrder
 
 
 
