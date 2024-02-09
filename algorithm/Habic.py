@@ -84,7 +84,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-class PPOLag:
+class Habic:
     def __init__(self, stateDim, actionDim, actorLr, criticLr,lagLr,limit,lagrange,epochs,eps, gamma, batchSize):
         self.actor = PolicyNet(stateDim,actionDim)
         self.rewardCritic = RewardValueNet(stateDim)
