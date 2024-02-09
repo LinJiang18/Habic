@@ -20,36 +20,34 @@ class Env(object):
         self.maxTime = maxTime
         self.maxDay = maxDay
 
-        # 全体时间信息
+
         self.cityTime = 0 #
         self.cityDay = 0
-        self.maxCityTime = maxTime # 从早上6点到晚上10点，共计统计16个小时
+        self.maxCityTime = maxTime
+
+
+        self.driverList = []
+        self.driverDict = {}
+        self.driverNum = driverNum
 
 
 
-        # 全体骑手信息
-        self.driverList = []  # 骑手列表
-        self.driverDict = {}  # 骑手ID对应的字典
-        self.driverNum = driverNum  # 对应的总骑手数目
-
-
-        # 全体网格信息
-        self.M = M  # 结点横轴数
-        self.N = N  # 结点纵轴数
-        self.regionNum = self.M * self.N # 总的结点数
+        self.M = M
+        self.N = N
+        self.regionNum = self.M * self.N
         self.regionList = [Region(i,self.regionNum) for i in range(self.regionNum)]  # 区域的结点列表
         self.regionDict = {}
 
 
-        # contextual Info
+
         self.candidateDriverSize = 20
         self.maxDriverPreNum = 16
 
         # speed
-        self.speed = 30
+        self.speed = 40
 
         #
-        self.alpha = 0
+        self.alpha = 1.5
         self.gamma = 0.98
 
     def set_region_info(self,WT):
@@ -106,7 +104,6 @@ class Env(object):
             for order in dayOrder:
                 startTime = order[2]
                 # orderID,orderDay,orderMin,orderRegion,oriLon,oriLat,destLon,destLat
-                # 订单ID(重写)，订单下单日期，订单下单时间（分钟）,订单所在区域，订单起点经度，订单起点纬度，订单终点经度，订单终点纬度
                 orderRegion = self.regionList[order[3]]
                 dayOrderList[startTime].append(Order(order[0], order[1], order[2], orderRegion, order[4], order[5],
                                                      order[7], order[8]))

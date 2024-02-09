@@ -80,10 +80,10 @@ class AC:
         self.actorOptimizer = torch.optim.Adam(self.actor.parameters(), lr=self.actorLr)
         self.rewardCriticOptimizer = torch.optim.Adam(self.rewardCritic.parameters(), lr=self.rewardCriticLr)
 
-    def take_action(self, matchingState):  # 训练
+    def take_action(self, matchingState,dayIndex):
         matchingState = torch.tensor(matchingState,dtype=torch.float)
         vOutput = self.actor(matchingState)
-        vOutput = vOutput.reshape(-1)  # 将二维张量变为一维张量
+        vOutput = vOutput.reshape(-1)
         actionProb = torch.softmax(vOutput, dim=0)
         a = random.random()
         if a < 1:
@@ -91,7 +91,7 @@ class AC:
             action = actionDist.sample().cpu()
         else:
             action = torch.max(actionProb,0)[1]
-        return action.item()  # 对softmax函数求导时的用法
+        return action.item()
 
     def update_theta(self, matchingState,state,action,reward,cost,nextState,round):
         state = torch.tensor(state, dtype=torch.float) # n * 244
@@ -111,8 +111,8 @@ class AC:
 
         # if round % 5 == 0:
         #     self.reset_critic_learning_rate()
-        if round % 10 == 0:
-            self.reset_actor_learning_rate()
+        # if round % 20 == 0:
+        #     self.reset_actor_learning_rate()
 
 
         actorLoss = torch.mean(-oldLogProb * rewardAdvantage.detach())
@@ -135,5 +135,5 @@ class AC:
         #self.actorOptimizer.param_groups[0]['lr'] = self.actorLr
 
     def reset_actor_learning_rate(self):
-        self.actorLr = self.actorLr / 3
+        self.actorLr = self.actorLr / 2
         self.actorOptimizer.param_groups[0]['lr'] = self.actorLr

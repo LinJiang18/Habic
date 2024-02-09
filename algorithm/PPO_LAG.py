@@ -109,9 +109,7 @@ class PPOLag:
         vOutput = self.actor(matchingState)
         vOutput = vOutput.reshape(-1)  # 将二维张量变为一维张量
         actionProb = torch.softmax(vOutput, dim=0)
-        # if dayIndex <= 14:
-        a = random.random()
-        if a < 1:
+        if dayIndex < 40:
             actionDist = torch.distributions.Categorical(actionProb)
             action = actionDist.sample().cpu()
         else:
@@ -149,9 +147,12 @@ class PPOLag:
             oldLogProb.append(lPOne)
 
 
-        if (round % 2 == 0):
-            self.reset_reward_critic_learning_rate()
-            self.reset_cost_critic_learning_rate()
+        # if (round % 2 == 0):
+        #     self.reset_reward_critic_learning_rate()
+        #     self.reset_cost_critic_learning_rate()
+        if (round % 20 == 0):
+            self.reset_actor_learning_rate()
+
 
         for k in range(self.epochs):
             newLogProb = []

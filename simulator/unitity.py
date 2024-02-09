@@ -33,7 +33,7 @@ class DispatchSolution:
         self.driverID = ID
 
     def add_state(self,state):
-        self.state = state  # np.array类型（骑手数目 * 匹配特征）
+        self.state = state
 
     def add_matchingState(self,matchingState):
         self.matchingState = matchingState
@@ -42,10 +42,10 @@ class DispatchSolution:
         self.trs = trs
 
     def add_action(self,action):
-        self.action = action  # 标量
+        self.action = action
 
     def add_reward(self,reward):
-        self.reward = reward # 奖励
+        self.reward = reward
 
     def add_cost(self,cost):
         self.cost = cost
