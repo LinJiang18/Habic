@@ -3,7 +3,7 @@ import numpy as np
 import math
 import statistics
 from simulator.envs import *
-from algorithm.PPO_LAG import *
+from algorithm.Habic import *
 from algorithm.AC import *
 import pickle
 
@@ -50,7 +50,7 @@ driverNum = 150
 
 env = Env(driverPreInit,driverLocInit,orderInfo,locRange,driverNum,M,N,maxDay,maxTime)
 
-agent = PPOLag(stateDim, actionDim, actorLr, criticLr,lagLr,limit,lagrange,epochs,eps, gamma, batchSize)
+agent = Habic(stateDim, actionDim, actorLr, criticLr, lagLr, limit, lagrange, epochs, eps, gamma, batchSize)
 replayBuffer = ReplayBuffer(memorySize, batchSize)
 
 env.set_driver_info(driverPreInit,driverLocInit)
