@@ -20,6 +20,7 @@ class Loc(object):
 class DispatchSolution:
 
     def __init__(self):
+        self.driverID = None
         self.state = None
         self.matchingState = None
         self.action = 0
@@ -28,8 +29,11 @@ class DispatchSolution:
         self.cost = None
         self.nextState = None
 
+    def add_driver_ID(self,ID):
+        self.driverID = ID
+
     def add_state(self,state):
-        self.state = state  # np.array类型（骑手数目 * 匹配特征）
+        self.state = state
 
     def add_matchingState(self,matchingState):
         self.matchingState = matchingState
@@ -38,10 +42,10 @@ class DispatchSolution:
         self.trs = trs
 
     def add_action(self,action):
-        self.action = action  # 标量
+        self.action = action
 
     def add_reward(self,reward):
-        self.reward = reward # 奖励
+        self.reward = reward
 
     def add_cost(self,cost):
         self.cost = cost
@@ -55,6 +59,10 @@ def cal_region(loc):
     lat = loc.lat
     x = int((lon - minlon) / londis)
     y = int((lat - minlat) / latdis)
+    if x >= 10:
+        x = 9
+    if y >= 10:
+        y = 9
     region = x + 10 * y
     return  region
 
