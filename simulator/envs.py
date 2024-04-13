@@ -222,6 +222,10 @@ class Env(object):
          #   for t in range(trs):
          #       gammaReward += rt * pow(self.gamma,t)
 
+    def cal_reward_maxmin(self,wt,meanwt,trs,cost):
+        reward = ((-wt) - self.alpha * abs(wt - meanwt))
+        return reward
+
 
 
     def cal_cost(self,order,driver):

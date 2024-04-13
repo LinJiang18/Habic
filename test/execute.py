@@ -25,16 +25,15 @@ stateDim = 21
 actionDim = 8
 actorLr = 1e-5
 criticLr = 5e-5
-lagLr = 1e-3
-limit = 1
+lagLr = 1e-2
+limit = 0.1
 lagrange = 1
 epochs = 5
 eps = 0.2
 gamma = 0.95
 memorySize = 100000
 batchSize = 100
-
-# ① 启始位置随机
+DN = 150
 
 
 orderInfo = pd.read_pickle('../data/order.pkl')
@@ -43,11 +42,11 @@ driverPreInit = pd.read_pickle('../data/driver_preference.pkl')
 driverLocInit = pd.read_pickle('../data/driver_location.pkl')
 regionWT = pd.read_pickle('../data/regionMeanWT.pkl')
 
-driverNum = 150
 
-env = Env(driverPreInit,driverLocInit,orderInfo,locRange,driverNum,M,N,maxDay,maxTime)
 
-agent = torch.load('../result/parameter information/agent10.pth')
+env = Env(driverPreInit, driverLocInit, orderInfo, locRange, DN, M, N, maxDay, maxTime)
+
+agent = torch.load('../testresult/agent.pth')
 replayBuffer = ReplayBuffer(memorySize, batchSize)
 
 env.set_driver_info(driverPreInit,driverLocInit)
@@ -64,6 +63,7 @@ meanCostList = []
 dayCostList = []
 dayMeanwtList = []
 dayIntraRegionfairnesswtList = []
+daymaxwtList = []
 
 while dayIndex < maxDay:
 
@@ -82,6 +82,7 @@ while dayIndex < maxDay:
     T = 0
     dDict = {}
     while T < maxTime:
+        maxwt = 0
         for order in env.dayOrder[T]:
             driverList = env.driver_collect(order)
             if driverList == 0:
@@ -95,9 +96,9 @@ while dayIndex < maxDay:
             stateArray = driverStateArray
             matchingStateArray = np.hstack((stateArray,actionStateArray)) # 80
 
-            #action = np.argmin(matchingStateArray[:,-1])
-            #action = random.choice(range(matchingStateArray.shape[0]))
-            action = agent.take_action(matchingStateArray,dayIndex) # action是一个值
+            # action = np.argmin(matchingStateArray[:,-1])
+            # action = random.choice(range(matchingStateArray.shape[0]))
+            action = agent.take_action(matchingStateArray,dayIndex)
 
             rightDriver = candidateList[action]
             rightRegion = env.regionList[order.oriRegion]
@@ -108,6 +109,8 @@ while dayIndex < maxDay:
             trs = int(math.ceil(wt + dt))
             meanwt = env.regionList[order.oriRegion].meanwt
             cost = env.cal_cost(order, candidateList[action])
+            if maxwt < wt:
+                maxwt = wt
             reward = env.cal_reward(wt,meanwt,trs,cost)
 
 
@@ -120,12 +123,13 @@ while dayIndex < maxDay:
             d.add_reward(reward)
             d.add_cost(cost)
             dDict[rightDriver] = d
-            #d.add_nextState(nextState)
+
 
             rightDriver.accept_order(trs,order.destLoc,reward,cost)
             rightRegion.accept_order(wt)
 
         env.step(dDict,replayBuffer)
+        daymaxwtList.append(maxwt)
         T = T + 1
 
 
@@ -171,12 +175,14 @@ while dayIndex < maxDay:
     dayIntraRegionfairnesswt = statistics.variance(filterRegionMeanList)
 
 
+
     print(f'Day {dayIndex}: mean reward: {meanReward}.')
     print(f'Day {dayIndex}: mean cost: {meanCost}.')
     print(f'Day {dayIndex}: day cost: {dayCost}.')
     # print(f'Day {dayIndex}: day waiting time: {daywt}.')
     print(f'Day {dayIndex}: day mean waiting time: {dayMeanwt}.')
     print(f'Day {dayIndex}: day fairness between regions: {dayIntraRegionfairnesswt}.')
+    print(f'Day {dayIndex}:max waiting time: {max(wtList)}')
     meanRewardList.append(meanReward)
     meanCostList.append(meanCost)
     dayCostList.append(dayCost)
@@ -191,26 +197,13 @@ print(f'day cost: {statistics.mean(dayCostList)}.')
 # print(f'Day {dayIndex}: day waiting time: {daywt}.')
 print(f'day mean waiting time: {statistics.mean(dayMeanwtList)}.')
 print(f'day fairness between regions: {statistics.mean(dayIntraRegionfairnesswtList)}.')
+print(f'max waiting time: {max(daymaxwtList)}')
+print(f'day max waiting time: {statistics.mean(daymaxwtList)}.')
 
 
 regionFairnessMatrix = np.mean(np.array(regionFairnessMatrix,dtype=float),axis = 0)
 regionMeanMatrix = np.mean(np.array(regionMeanMatrix,dtype=float),axis = 0)
 
+with open('../rebuttal/review 2 question 1/LagTRPO.pkl', 'wb') as file:
+     pickle.dump(np.array(regionMeanMatrix), file)
 
-
-print(np.mean(regionFairnessMatrix))
-# with open('../result/test information/agent3/regionFairnessMatrix4.pkl', 'wb') as file:
-#    pickle.dump(np.array(regionFairnessMatrix),file)
-#
-# with open('../result/test information/agent3/regionMeanMatrix4.pkl', 'wb') as file:
-#    pickle.dump(np.array(regionMeanMatrix),file)
-
-
-#torch.save(agent,'../agent/agent1(0.0001,0.001).pth')
-
-# print('regionFairness')
-# print(regionFairnessMatrix)
-#
-# print('regionMean')
-# print(regionMeanMatrix)
-#
