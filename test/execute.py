@@ -23,10 +23,10 @@ N = 10
 
 stateDim = 21
 actionDim = 8
-actorLr = 1e-5
-criticLr = 5e-5
-lagLr = 1e-2
-limit = 0.1
+actorLr = 0.00005
+criticLr = 0.00005
+lagLr = 0.001
+limit = 0.10
 lagrange = 1
 epochs = 5
 eps = 0.2
